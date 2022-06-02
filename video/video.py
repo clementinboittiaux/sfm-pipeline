@@ -67,26 +67,34 @@ def frame_extraction(
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Video processing.')
-    parser.add_argument('command', choices=['deinterlace', 'frame_extraction'])
-    parser.add_argument('--input', type=Path)
-    parser.add_argument('--output', type=Path)
-    parser.add_argument('--video-time', help='in format YYYY/mm/dd-HH:MM:SS.',
-                        type=lambda x: datetime.strptime(x, '%Y/%m/%d-%H:%M:%S'))
-    parser.add_argument('--frame-interval', type=float, default=0.0, help='time between frames in seconds.')
-    parser.add_argument('--start-time', type=float, default=0.0, help='extraction start time in seconds.')
-    parser.add_argument('--end-time', type=float, default=math.inf, help='extraction end time in seconds')
-    parser.add_argument('--invert-lines', action='store_true')
+    parser = argparse.ArgumentParser(description='Video processing.',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    subparsers = parser.add_subparsers(dest='command')
+    parser_deinterlace = subparsers.add_parser('deinterlace', help=deinterlace.__doc__.splitlines()[0],
+                                               formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser_frame_extraction = subparsers.add_parser('frame-extraction', help=frame_extraction.__doc__.splitlines()[0],
+                                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser_deinterlace.add_argument('--input', required=True, type=Path, help='input video file')
+    parser_deinterlace.add_argument('--output', required=True, type=Path, help='output video file')
+    parser_deinterlace.add_argument('--invert-lines', action='store_true', help='invert odd and even lines')
+
+    parser_frame_extraction.add_argument('--input', required=True, type=Path, help='input video file')
+    parser_frame_extraction.add_argument('--output', required=True, type=Path, help='path to output directory')
+    parser_frame_extraction.add_argument('--video-time', help='video time in format YYYY/mm/dd-HH:MM:SS',
+                                         type=lambda x: datetime.strptime(x, '%Y/%m/%d-%H:%M:%S'))
+    parser_frame_extraction.add_argument('--frame-interval', type=float, default=0.0,
+                                         help='time between frames in seconds')
+    parser_frame_extraction.add_argument('--start-time', type=float, default=0.0,
+                                         help='extraction start time in seconds')
+    parser_frame_extraction.add_argument('--end-time', type=float, default=math.inf,
+                                         help='extraction end time in seconds')
+
     args = parser.parse_args()
 
     if args.command == 'deinterlace':
-        for arg in ['input', 'output']:
-            assert args.__dict__[arg] is not None, f'Argument --{arg} is required for {args.command}.'
         deinterlace(args.input, args.output, args.invert_lines)
-
     elif args.command == 'frame_extraction':
-        for arg in ['input', 'output']:
-            assert args.__dict__[arg] is not None, f'Argument --{arg} is required for {args.command}.'
         frame_extraction(
             args.input,
             args.output,
