@@ -3,6 +3,7 @@ import math
 import tqdm
 import ffmpeg
 import argparse
+import numpy as np
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -43,25 +44,29 @@ def frame_extraction(
         raise FileNotFoundError(f'Cannot open {input_file}')
 
     fps = cap.get(cv2.CAP_PROP_FPS)
-    capture_frequency = int(frame_interval * fps)
-    start_frame = math.ceil(start_time * fps)
+    frame_total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    for _ in tqdm.tqdm(range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))):
-        frame_index = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+    all_times = np.arange(frame_total) / fps
+    if frame_interval <= 1 / fps:
+        saved_frames = np.arange(frame_total)
+        saved_frames = saved_frames[(start_time <= all_times) & (all_times < end_time)]
+    else:
+        saved_times = np.arange(0, frame_total / fps, frame_interval)
+        saved_frames = np.arange(saved_times.size, dtype=np.int64)
+        for i, time in enumerate(saved_times):
+            if start_time <= time < end_time:
+                saved_frames[i] = np.abs(all_times - time).argmin()
+        saved_frames = np.unique(saved_frames)
+
+    for frame_index in tqdm.tqdm(range(frame_total)):
+        frame_seconds = frame_index / fps
         _, frame = cap.read()
-        frame_milliseconds = cap.get(cv2.CAP_PROP_POS_MSEC)
 
-        if (
-                frame_index >= start_frame and frame_milliseconds / 1000 <= end_time and
-                (
-                    capture_frequency == 0 or
-                    (frame_index - start_frame) % capture_frequency == 0
-                )
-        ):
+        if np.isin(frame_index, saved_frames, assume_unique=True):
             if video_time is None:
-                image_name = f'frame{frame_index:06d}.png'
+                image_name = f'frame{frame_index:08d}.png'
             else:
-                frame_date = video_time + timedelta(milliseconds=frame_milliseconds)
+                frame_date = video_time + timedelta(seconds=frame_seconds)
                 image_name = f'{frame_date.strftime("%Y%m%dT%H%M%S.%f")[:-3]}Z.png'
             cv2.imwrite(str(output_path / image_name), frame)
 
@@ -94,7 +99,7 @@ if __name__ == '__main__':
 
     if args.command == 'deinterlace':
         deinterlace(args.input, args.output, args.invert_lines)
-    elif args.command == 'frame_extraction':
+    elif args.command == 'frame-extraction':
         frame_extraction(
             args.input,
             args.output,
