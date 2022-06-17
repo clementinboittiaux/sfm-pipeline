@@ -26,12 +26,12 @@ def deinterlace(input_file: Path, output_file: Path, invert_lines: bool = False)
 
 
 def frame_extraction(
-        input_file: Path,
-        output_path: Path,
-        video_time: datetime = None,
-        frame_interval: float = 0.0,
-        start_time: float = 0.0,
-        end_time: float = math.inf
+    input_file: Path,
+    output_path: Path,
+    video_time: datetime = None,
+    frame_interval: float = 0.0,
+    start_time: float = 0.0,
+    end_time: float = math.inf
 ):
     """Extracts frames from video.
     `frame_interval`, `start_time` and `end_time` are in seconds.
