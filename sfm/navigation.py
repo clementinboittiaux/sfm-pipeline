@@ -13,6 +13,7 @@ class Navigation:
     date1 lat1 lon1 alt1 yaw1 pitch1 roll1
     date2 lat2 lon2 alt2 yaw2 pitch2 roll2
     ...
+    Dates must be sorted.
     """
 
     def __init__(self, navigation_file: Path):
@@ -80,14 +81,14 @@ class Navigation:
         return lat, lon, alt, w_q_c
 
     def to_pose_priors(self, image_path: Path, output_file: Path):
-        with open(output_file, 'r') as f:
+        with open(output_file, 'w') as f:
             for image_file in image_path.iterdir():
-                image_date = datetime.strptime(image_file.with_suffix('').name, '%Y%m%dT%H%M%S.%f')
+                image_date = datetime.strptime(image_file.with_suffix('').name, '%Y%m%dT%H%M%S.%fZ')
                 lat, lon, alt, q = self.interpolate(image_date)
                 f.write(f'{image_file.name} {lat} {lon} {alt} {q[0]} {q[1]} {q[2]} {q[3]}\n')
 
 
 if __name__ == '__main__':
     nav = Navigation(Path('/home/server/Dev/sfm-pipeline/test_nav.txt'))
-    nav.interpolate(datetime.strptime('2016/09/10-08:52:25.500000', '%Y/%m/%d-%H:%M:%S.%f'))
+    nav.to_pose_priors(Path('/home/server/Dev/sfm-pipeline/video/images2016'), Path('output.txt'))
     pass
