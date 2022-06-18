@@ -80,20 +80,20 @@ if __name__ == '__main__':
     parser_frame_extraction = subparsers.add_parser('frame-extraction', help=frame_extraction.__doc__.splitlines()[0],
                                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser_deinterlace.add_argument('--input', required=True, type=Path, help='input video file')
-    parser_deinterlace.add_argument('--output', required=True, type=Path, help='output video file')
-    parser_deinterlace.add_argument('--invert-lines', action='store_true', help='invert odd and even lines')
+    parser_deinterlace.add_argument('--input', required=True, type=Path, help='input video file.')
+    parser_deinterlace.add_argument('--output', required=True, type=Path, help='output video file.')
+    parser_deinterlace.add_argument('--invert-lines', action='store_true', help='invert odd and even lines.')
 
-    parser_frame_extraction.add_argument('--input', required=True, type=Path, help='input video file')
-    parser_frame_extraction.add_argument('--output', required=True, type=Path, help='path to output directory')
-    parser_frame_extraction.add_argument('--video-time', help='video time in format YYYY/mm/dd-HH:MM:SS',
+    parser_frame_extraction.add_argument('--input', required=True, type=Path, help='input video file.')
+    parser_frame_extraction.add_argument('--output', required=True, type=Path, help='path to output directory.')
+    parser_frame_extraction.add_argument('--video-time', help='video time in format `YYYY/mm/dd-HH:MM:SS`.',
                                          type=lambda x: datetime.strptime(x, '%Y/%m/%d-%H:%M:%S'))
     parser_frame_extraction.add_argument('--frame-interval', type=float, default=0.0,
-                                         help='time between frames in seconds')
+                                         help='time between frames in seconds.')
     parser_frame_extraction.add_argument('--start-time', type=float, default=0.0,
-                                         help='extraction start time in seconds')
+                                         help='extraction start time in seconds.')
     parser_frame_extraction.add_argument('--end-time', type=float, default=math.inf,
-                                         help='extraction end time in seconds')
+                                         help='extraction end time in seconds.')
 
     args = parser.parse_args()
 

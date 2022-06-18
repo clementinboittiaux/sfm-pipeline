@@ -1,19 +1,33 @@
+import argparse
 import numpy as np
 import pandas as pd
+import pymap3d as pm
+from enum import Enum
 from pathlib import Path
 from datetime import datetime, timedelta
 from geographiclib.geodesic import Geodesic
 from scipy.spatial.transform import Rotation, Slerp
 
 
-def load_navigation(navigation_file: Path, camera_to_vehicle: Rotation = Rotation.from_euler('x', -np.pi / 2)):
+class CameraToVehicle(Enum):
+    """
+    Camera-to-vehicle rotation transformation.
+    """
+
+    VICTORHD = Rotation.from_euler('x', -np.pi / 2)
+
+    def __str__(self):
+        return self.name
+
+
+def load_navigation(navigation_file: Path, camera_to_vehicle: CameraToVehicle = CameraToVehicle.VICTORHD):
     df = pd.read_csv(navigation_file, sep=' ')
     dates = np.array([datetime.strptime(date, '%Y/%m/%d-%H:%M:%S.%f') for date in df['date']])
     gps = df[['lat', 'lon', 'alt']].values
     world_to_vehicle = Rotation.from_euler('zyx', df[['yaw', 'pitch', 'roll']].values, degrees=True)
-    rots = world_to_vehicle.inv() * camera_to_vehicle  # camera-to-world
-    args = np.argsort(dates)
-    return dates[args], gps[args], rots[args]
+    rots = world_to_vehicle.inv() * camera_to_vehicle.value  # camera-to-world
+    indices = np.argsort(dates)
+    return dates[indices], gps[indices], rots[indices]
 
 
 def interpolate_gps(date, date1, lat1, lon1, alt1, date2, lat2, lon2, alt2):
@@ -31,7 +45,7 @@ def interpolate_rot(date, date1, date2, rots):
     return slerp(ratio)
 
 
-def interpolate_image_pose(image_file, dates, gps, rots, max_gap_time=3):
+def interpolate_image_pose(image_file, dates, gps, rots, max_gap_time: float = 3):
     image_date = datetime.strptime(image_file.with_suffix('').name, '%Y%m%dT%H%M%S.%fZ')
 
     assert dates[0] <= image_date <= dates[-1], \
@@ -61,21 +75,57 @@ def interpolate_image_pose(image_file, dates, gps, rots, max_gap_time=3):
     return lat, lon, alt, q
 
 
-def navigation_to_pose_priors(navigation_file: Path, image_path: Path, output_file: Path):
-    dates, gps, rots = load_navigation(navigation_file)
+def navigation_to_pose_priors(
+        navigation_file: Path,
+        image_path: Path,
+        output_file: Path,
+        max_gap_time: float = 3,
+        camera_to_vehicle: CameraToVehicle = CameraToVehicle.VICTORHD
+):
+    dates, gps, rots = load_navigation(navigation_file, camera_to_vehicle)
     with open(output_file, 'w') as f:
         for image_file in image_path.iterdir():
             try:
-                lat, lon, alt, q = interpolate_image_pose(image_file, dates, gps, rots)
+                lat, lon, alt, q = interpolate_image_pose(image_file, dates, gps, rots, max_gap_time)
                 f.write(f'{image_file.name} {lat} {lon} {alt} {q[3]} {q[0]} {q[1]} {q[2]}\n')
             except AssertionError as err:
                 print(f'{err} Skipping...')
 
 
+def gps_to_enu(gps: np.array):
+    lat0, lon0, alt0 = gps[0]
+    enu = np.zeros_like(gps, dtype=np.float64)
+    for i, (lat, lon, alt) in enumerate(gps):
+        enu[i] = pm.geodetic2enu(lat, lon, alt, lat0, lon0, alt0)
+    return enu
+
+
 if __name__ == '__main__':
-    navigation_to_pose_priors(
-        Path('/home/clementin/Dev/sfm-pipeline/test.txt'),
-        Path('/home/clementin/Dev/sfm-pipeline/images'),
-        Path('output.txt')
+    parser = argparse.ArgumentParser(
+        description='Convert navigation file into pose priors file.\n'
+        'Navigation data is interpolated at the images dates.\n'
+        'Navigation file format is:\n'
+        'date lat lon alt yaw pitch roll\n'
+        'date1 lat1 lon1 alt1 yaw1 pitch1 roll1\n'
+        'date2 lat2 lon2 alt2 yaw2 pitch2 roll2\n'
+        '...\n'
+        'where dates are in format `YYYY/mm/dd-HH:MM:SS.ffffff`.',
+        formatter_class=argparse.RawTextHelpFormatter
     )
-    pass
+    parser.add_argument('--navigation-file', required=True, type=Path, help='path to navigation file.')
+    parser.add_argument('--image-path', required=True, type=Path, help='path to images folder.')
+    parser.add_argument('--output-file', required=True, type=Path, help='path to output pose priors file.')
+    parser.add_argument('--max-gap-time', type=float, default=3,
+                        help='maximum time gap between two interpolation points in seconds. (default: %(default)s)')
+    parser.add_argument('--camera-to-vehicle', type=lambda x: CameraToVehicle[x],
+                        default='VICTORHD', choices=list(CameraToVehicle),
+                        help='camera-to-vehicle rotation transformation. (default: %(default)s)')
+    args = parser.parse_args()
+
+    navigation_to_pose_priors(
+        args.navigation_file,
+        args.image_path,
+        args.output_file,
+        max_gap_time=args.max_gap_time,
+        camera_to_vehicle=args.camera_to_vehicle
+    )
