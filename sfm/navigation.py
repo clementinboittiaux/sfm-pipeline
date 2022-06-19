@@ -24,7 +24,7 @@ def load_navigation(navigation_file: Path, camera_to_vehicle: CameraToVehicle = 
     df = pd.read_csv(navigation_file, sep=' ')
     dates = np.array([datetime.strptime(date, '%Y%m%dT%H%M%S.%f') for date in df['date']])
     gps = df[['lat', 'lon', 'alt']].values
-    world_to_vehicle = Rotation.from_euler('zyx', df[['yaw', 'pitch', 'roll']].values, degrees=True)
+    world_to_vehicle = Rotation.from_euler('ZYX', df[['yaw', 'pitch', 'roll']].values, degrees=True)
     rots = world_to_vehicle.inv() * camera_to_vehicle.value  # camera-to-world
     indices = np.argsort(dates)
     return dates[indices], gps[indices], rots[indices]
