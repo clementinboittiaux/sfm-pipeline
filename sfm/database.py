@@ -29,6 +29,7 @@ def import_images(database_path: Path, image_path: Path, camera_file: Path, pose
                 prior_q = pose_priors[image_file.name]['prior_q']
                 db.add_image(image_file.name, camera_id, prior_t=prior_t, prior_q=prior_q)
             else:
+                print(f'No rotation prior for {image_file.name}.')
                 db.add_image(image_file.name, camera_id, prior_t=prior_t)
         else:
             print(f'No pose prior for {image_file.name}.')
