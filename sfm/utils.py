@@ -16,8 +16,8 @@ def load_pose_priors(pose_prior_file: Path) -> dict:
     imagename2 lat2 lon2 alt2
     ...
     File format for cartesian data is:
-    filename1 X1 Y1 Z1 qw1 qx1 qy1 qz1
-    filename2 X2 Y2 Z2
+    imagename1 X1 Y1 Z1 qw1 qx1 qy1 qz1
+    imagename2 X2 Y2 Z2
     ...
     where qw, qx, qy, qz are optional camera-to-world quaternions.
     :param pose_prior_file: path to prior file.
@@ -34,3 +34,7 @@ def load_pose_priors(pose_prior_file: Path) -> dict:
             if len(line) == 8:
                 pose_priors[image_name]['prior_q'] = np.array(list(map(float, line[4:8])))
     return pose_priors
+
+
+def angle_between_quaternions(q, r):
+    return 2 * np.arccos(np.abs(np.sum(q * r, axis=1)).clip(0, 1))
