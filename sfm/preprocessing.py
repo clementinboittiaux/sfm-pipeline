@@ -86,8 +86,8 @@ if __name__ == '__main__':
 
     parser_frame_extraction.add_argument('--input', required=True, type=Path, help='input video file.')
     parser_frame_extraction.add_argument('--output', required=True, type=Path, help='path to output directory.')
-    parser_frame_extraction.add_argument('--video-time', help='video time in format `YYYY/mm/dd-HH:MM:SS`.',
-                                         type=lambda x: datetime.strptime(x, '%Y/%m/%d-%H:%M:%S'))
+    parser_frame_extraction.add_argument('--video-time', help='video time in format `YYYYmmddTHHMMSS.ffffff`.',
+                                         type=lambda x: datetime.strptime(x, '%Y%m%dT%H%M%S.%f'))
     parser_frame_extraction.add_argument('--frame-interval', type=float, default=0.0,
                                          help='time between frames in seconds.')
     parser_frame_extraction.add_argument('--start-time', type=float, default=0.0,

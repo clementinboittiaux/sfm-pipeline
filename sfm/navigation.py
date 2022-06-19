@@ -22,7 +22,7 @@ class CameraToVehicle(Enum):
 
 def load_navigation(navigation_file: Path, camera_to_vehicle: CameraToVehicle = CameraToVehicle.VICTORHD):
     df = pd.read_csv(navigation_file, sep=' ')
-    dates = np.array([datetime.strptime(date, '%Y/%m/%d-%H:%M:%S.%f') for date in df['date']])
+    dates = np.array([datetime.strptime(date, '%Y%m%dT%H%M%S.%f') for date in df['date']])
     gps = df[['lat', 'lon', 'alt']].values
     world_to_vehicle = Rotation.from_euler('zyx', df[['yaw', 'pitch', 'roll']].values, degrees=True)
     rots = world_to_vehicle.inv() * camera_to_vehicle.value  # camera-to-world
@@ -109,7 +109,7 @@ if __name__ == '__main__':
         'date1 lat1 lon1 alt1 yaw1 pitch1 roll1\n'
         'date2 lat2 lon2 alt2 yaw2 pitch2 roll2\n'
         '...\n'
-        'where dates are in format `YYYY/mm/dd-HH:MM:SS.ffffff`.',
+        'where dates are in format `YYYYmmddTHHMMSS.ffffff`.',
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument('--navigation-file', required=True, type=Path, help='path to navigation file.')
