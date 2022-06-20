@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 
 
-def load_camera(camera_file):
+def load_camera(camera_file: Path) -> dict:
     with open(camera_file, 'r') as f:
         camera = yaml.safe_load(f)
     return camera
@@ -37,4 +37,10 @@ def load_pose_priors(pose_prior_file: Path) -> dict:
 
 
 def angle_between_quaternions(q, r):
+    """
+    Returns the angle in radians between quaternion `q` and quaternions `r`.
+    :param q: quaternion.
+    :param r: batch of quaternions.
+    :return: angular distance between `q` and `r`.
+    """
     return 2 * np.arccos(np.abs(np.sum(q * r, axis=1)).clip(0, 1))

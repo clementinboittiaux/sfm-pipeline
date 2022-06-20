@@ -42,4 +42,4 @@ def visualize_navigation(navigation_file: Path, min_date: datetime, max_date: da
 
 
 if __name__ == '__main__':
-    visualize_pose_priors(Path('/home/clementin/Dev/sfm-pipeline/priors.txt'))
+    visualize_pose_priors(Path('/home/server/Dev/sfm-pipeline/priors2016.txt'))
