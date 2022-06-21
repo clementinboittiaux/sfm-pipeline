@@ -1,39 +1,35 @@
 from pathlib import Path
 from database import create_database, import_images
+from matching import pairs_from_poses, superpoint, superglue
 
 
-def run_sfm(
-        image_paths: list[Path],
-        camera_files: list[Path],
-        pose_prior_files: list[Path],
-        output_path: Path
-):
+def run_sfm(image_dir: Path, camera_path: Path, pose_prior_path: Path, output_dir: Path):
     """
     Run SfM pipeline.
-    :param image_paths: list of image paths.
-    :param camera_files: list of camera files.
-    :param pose_prior_files: list of pose prior files.
-    :param output_path: path to output directory.
+    :param image_dir: path of image directory.
+    :param camera_path: path to camera file.
+    :param pose_prior_path: path to pose prior file.
+    :param output_dir: path to output directory.
     """
-    assert not output_path.exists(), f'Output directory {output_path} already exists.'
-    assert len(image_paths) == len(camera_files) == len(pose_prior_files), \
-        '`image_paths`, `camera_files` and `pose_prior_files` must have the same length.'
+    assert not output_dir.exists(), f'Output directory {output_dir} already exists.'
 
-    output_path.mkdir(parents=True)
+    database_path = output_dir / 'database.db'
+    pairs_path = output_dir / 'pairs.txt'
+    feature_path = output_dir / 'features.h5'
 
-    db_path = output_path / 'database.db'
-    create_database(db_path)
+    output_dir.mkdir(parents=True)
 
-    for image_path, camera_file, pose_prior_file in zip(image_paths, camera_files, pose_prior_files):
-        import_images(db_path, image_path, camera_file, pose_prior_file)
-
-    # create_pairs()
+    create_database(database_path)
+    import_images(database_path, image_dir, camera_path, pose_prior_path)
+    pairs_from_poses(database_path, pairs_path, max_pairs=20, max_dist=3, max_angle=30, is_gps=True)
+    superpoint(image_dir, feature_path)
+    superglue()
 
 
 if __name__ == '__main__':
     run_sfm(
-        [Path('/home/server/Dev/sfm-pipeline/video/images2016')],
-        [Path('/home/server/Dev/sfm-pipeline/cameras/VictorHD.yaml')],
-        [Path('/home/server/Dev/sfm-pipeline/priors2016.txt')],
+        Path('/home/server/Dev/sfm-pipeline/video/images2016'),
+        Path('/home/server/Dev/sfm-pipeline/cameras/VictorHD.yaml'),
+        Path('/home/server/Dev/sfm-pipeline/priors2016.txt'),
         Path('/home/server/Dev/sfm-pipeline/output')
     )

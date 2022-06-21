@@ -2,12 +2,13 @@ import numpy as np
 from utils import angle_between_quaternions
 from pathlib import Path
 from database import load_database_images
+from hloc.hloc import extract_features
 from navigation import gps_to_enu
 
 
 def pairs_from_poses(
         database_path: Path,
-        output_file: Path,
+        output_path: Path,
         max_pairs: int = 20,
         max_dist: float = 3,
         max_angle: float = 30,
@@ -16,7 +17,7 @@ def pairs_from_poses(
     _, image_names, _, prior_qs, prior_ts = load_database_images(database_path)
     if is_gps:
         prior_ts = gps_to_enu(prior_ts)
-    with open(output_file, 'w') as f:
+    with open(output_path, 'w') as f:
         for image_name, prior_q, prior_t in zip(image_names, prior_qs, prior_ts):
             t_dist = np.linalg.norm(prior_ts - prior_t, axis=1)
             q_dist = np.rad2deg(angle_between_quaternions(prior_q, prior_qs))
@@ -25,6 +26,18 @@ def pairs_from_poses(
             pairs = valid_image_names[np.argsort(valid_t_dist)]
             for pair in pairs[:max_pairs]:
                 f.write(f'{image_name} {pair}\n')
+
+
+def superpoint(image_dir: Path, feature_path: Path):
+    extract_features.main(
+        extract_features.confs['superpoint_aachen'],
+        image_dir=image_dir,
+        feature_path=feature_path
+    )
+
+
+def superglue():
+    pass
 
 
 if __name__ == '__main__':

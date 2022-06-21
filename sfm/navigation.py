@@ -20,8 +20,8 @@ class CameraToVehicle(Enum):
         return self.name
 
 
-def load_navigation(navigation_file: Path, camera_to_vehicle: CameraToVehicle = CameraToVehicle.VICTORHD):
-    df = pd.read_csv(navigation_file, sep=' ')
+def load_navigation(navigation_path: Path, camera_to_vehicle: CameraToVehicle = CameraToVehicle.VICTORHD):
+    df = pd.read_csv(navigation_path, sep=' ')
     dates = np.array([datetime.strptime(date, '%Y%m%dT%H%M%S.%f') for date in df['date']])
     gps = df[['lat', 'lon', 'alt']].values
     world_to_vehicle = Rotation.from_euler('ZYX', df[['yaw', 'pitch', 'roll']].values, degrees=True)
@@ -45,11 +45,11 @@ def interpolate_rot(date, date1, date2, rots):
     return slerp(ratio)
 
 
-def interpolate_image_pose(image_file, dates, gps, rots, max_gap_time: float = 3):
-    image_date = datetime.strptime(image_file.with_suffix('').name, '%Y%m%dT%H%M%S.%fZ')
+def interpolate_image_pose(image_path, dates, gps, rots, max_gap_time: float = 3):
+    image_date = datetime.strptime(image_path.with_suffix('').name, '%Y%m%dT%H%M%S.%fZ')
 
     assert dates[0] <= image_date <= dates[-1], \
-        f'Image {image_file.name} is out of navigation range ({dates[0]}, {dates[-1]}).'
+        f'Image {image_path.name} is out of navigation range ({dates[0]}, {dates[-1]}).'
 
     image_date_arg = np.searchsorted(dates, image_date, side='left')
     nav_date2 = dates[image_date_arg]
@@ -63,7 +63,7 @@ def interpolate_image_pose(image_file, dates, gps, rots, max_gap_time: float = 3
         lat1, lon1, alt1 = gps[image_date_arg - 1]
 
         assert nav_date2 - nav_date1 <= timedelta(seconds=max_gap_time), \
-            f'Max gap time exceeded for image {image_file.name} ({nav_date1}, {nav_date2}).'
+            f'Max gap time exceeded for image {image_path.name} ({nav_date1}, {nav_date2}).'
 
         lat, lon, alt = interpolate_gps(image_date, nav_date1, lat1, lon1, alt1, nav_date2, lat2, lon2, alt2)
         rot = interpolate_rot(image_date, nav_date1, nav_date2, rots[image_date_arg - 1:image_date_arg + 1])
@@ -76,18 +76,18 @@ def interpolate_image_pose(image_file, dates, gps, rots, max_gap_time: float = 3
 
 
 def navigation_to_pose_priors(
-        navigation_file: Path,
-        image_path: Path,
-        output_file: Path,
+        navigation_path: Path,
+        image_dir: Path,
+        output_path: Path,
         max_gap_time: float = 3,
         camera_to_vehicle: CameraToVehicle = CameraToVehicle.VICTORHD
 ):
-    dates, gps, rots = load_navigation(navigation_file, camera_to_vehicle)
-    with open(output_file, 'w') as f:
-        for image_file in image_path.iterdir():
+    dates, gps, rots = load_navigation(navigation_path, camera_to_vehicle)
+    with open(output_path, 'w') as f:
+        for image_path in image_dir.iterdir():
             try:
-                lat, lon, alt, q = interpolate_image_pose(image_file, dates, gps, rots, max_gap_time)
-                f.write(f'{image_file.name} {lat} {lon} {alt} {q[3]} {q[0]} {q[1]} {q[2]}\n')
+                lat, lon, alt, q = interpolate_image_pose(image_path, dates, gps, rots, max_gap_time)
+                f.write(f'{image_path.name} {lat} {lon} {alt} {q[3]} {q[0]} {q[1]} {q[2]}\n')
             except AssertionError as err:
                 print(f'{err} Skipping...')
 
@@ -112,9 +112,9 @@ if __name__ == '__main__':
         'where dates are in format `YYYYmmddTHHMMSS.ffffff`.',
         formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument('--navigation-file', required=True, type=Path, help='path to navigation file.')
-    parser.add_argument('--image-path', required=True, type=Path, help='path to images folder.')
-    parser.add_argument('--output-file', required=True, type=Path, help='path to output pose priors file.')
+    parser.add_argument('--navigation-path', required=True, type=Path, help='path to navigation file.')
+    parser.add_argument('--image-dir', required=True, type=Path, help='path to images directory.')
+    parser.add_argument('--output-path', required=True, type=Path, help='path to output pose priors file.')
     parser.add_argument('--max-gap-time', type=float, default=3,
                         help='maximum time gap between two interpolation points in seconds. (default: %(default)s)')
     parser.add_argument('--camera-to-vehicle', type=lambda x: CameraToVehicle[x],
@@ -123,9 +123,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     navigation_to_pose_priors(
-        args.navigation_file,
-        args.image_path,
-        args.output_file,
+        args.navigation_path,
+        args.image_dir,
+        args.output_path,
         max_gap_time=args.max_gap_time,
         camera_to_vehicle=args.camera_to_vehicle
     )

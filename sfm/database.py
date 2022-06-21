@@ -12,9 +12,9 @@ def create_database(database_path: Path):
     db.close()
 
 
-def import_images(database_path: Path, image_path: Path, camera_file: Path, pose_prior_file: Path = None):
+def import_images(database_path: Path, image_dir: Path, camera_path: Path, pose_prior_path: Path = None):
     db = COLMAPDatabase.connect(database_path)
-    camera = load_camera(camera_file)
+    camera = load_camera(camera_path)
     camera_id = db.add_camera(
         CAMERA_MODEL_NAMES[camera['model']].model_id,
         camera['width'],
@@ -22,19 +22,19 @@ def import_images(database_path: Path, image_path: Path, camera_file: Path, pose
         camera['params'],
         prior_focal_length=True
     )
-    pose_priors = load_pose_priors(pose_prior_file) if pose_prior_file is not None else {}
-    for image_file in image_path.iterdir():
-        if image_file.name in pose_priors:
-            prior_t = pose_priors[image_file.name]['prior_t']
-            if 'prior_q' in pose_priors[image_file.name]:
-                prior_q = pose_priors[image_file.name]['prior_q']
-                db.add_image(image_file.name, camera_id, prior_t=prior_t, prior_q=prior_q)
+    pose_priors = load_pose_priors(pose_prior_path) if pose_prior_path is not None else {}
+    for image_path in image_dir.iterdir():
+        if image_path.name in pose_priors:
+            prior_t = pose_priors[image_path.name]['prior_t']
+            if 'prior_q' in pose_priors[image_path.name]:
+                prior_q = pose_priors[image_path.name]['prior_q']
+                db.add_image(image_path.name, camera_id, prior_t=prior_t, prior_q=prior_q)
             else:
-                print(f'No rotation prior for {image_file.name}.')
-                db.add_image(image_file.name, camera_id, prior_t=prior_t)
+                print(f'No rotation prior for {image_path.name}.')
+                db.add_image(image_path.name, camera_id, prior_t=prior_t)
         else:
-            print(f'No pose prior for {image_file.name}.')
-            db.add_image(image_file.name, camera_id)
+            print(f'No pose prior for {image_path.name}.')
+            db.add_image(image_path.name, camera_id)
     db.commit()
     db.close()
 

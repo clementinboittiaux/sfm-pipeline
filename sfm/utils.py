@@ -3,13 +3,13 @@ import numpy as np
 from pathlib import Path
 
 
-def load_camera(camera_file: Path) -> dict:
-    with open(camera_file, 'r') as f:
+def load_camera(camera_path: Path) -> dict:
+    with open(camera_path, 'r') as f:
         camera = yaml.safe_load(f)
     return camera
 
 
-def load_pose_priors(pose_prior_file: Path) -> dict:
+def load_pose_priors(pose_prior_path: Path) -> dict:
     """
     File format for GPS data is:
     imagename1 lat1 lon1 alt1 qw1 qx1 qy1 qz1
@@ -20,14 +20,14 @@ def load_pose_priors(pose_prior_file: Path) -> dict:
     imagename2 X2 Y2 Z2
     ...
     where qw, qx, qy, qz are optional camera-to-world quaternions.
-    :param pose_prior_file: path to prior file.
+    :param pose_prior_path: path to prior file.
     :return: priors
     """
     pose_priors = {}
-    with open(pose_prior_file, 'r') as f:
+    with open(pose_prior_path, 'r') as f:
         for line in f:
             line = line.split(' ')
-            assert len(line) == 4 or len(line) == 8, f'File {pose_prior_file} format is invalid.'
+            assert len(line) == 4 or len(line) == 8, f'File {pose_prior_path} format is invalid.'
             image_name = line[0]
             pose_priors[image_name] = {}
             pose_priors[image_name]['prior_t'] = np.array(list(map(float, line[1:4])))

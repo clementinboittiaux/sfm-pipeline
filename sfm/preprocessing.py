@@ -8,26 +8,26 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 
-def deinterlace(input_file: Path, output_file: Path, invert_lines: bool = False):
+def deinterlace(input_path: Path, output_path: Path, invert_lines: bool = False):
     """Deinterlace a video and save it with a lossless codec.
     Output extension is usually '.mkv'.
     If `invert_lines` is True, inverts odd and even lines before deinterlacing.
     FFV1 help: https://trac.ffmpeg.org/wiki/Encode/FFV1
     Line inverting help: http://underpop.online.fr/f/ffmpeg/help/il.htm.gz
     """
-    stream = ffmpeg.input(str(input_file))
+    stream = ffmpeg.input(str(input_path))
 
     if invert_lines:
         stream = stream.filter('il', ls=1, cs=1)
 
     stream = stream.filter('yadif', 0)
-    stream = stream.output(str(output_file), vcodec='ffv1', level=3)
+    stream = stream.output(str(output_path), vcodec='ffv1', level=3)
     stream.run()
 
 
 def frame_extraction(
-        input_file: Path,
-        output_path: Path,
+        input_path: Path,
+        output_dir: Path,
         video_time: datetime = None,
         frame_interval: float = 0.0,
         start_time: float = 0.0,
@@ -36,12 +36,12 @@ def frame_extraction(
     """Extracts frames from video.
     `frame_interval`, `start_time` and `end_time` are in seconds.
     """
-    output_path.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    cap = cv2.VideoCapture(str(input_file))
+    cap = cv2.VideoCapture(str(input_path))
 
     if not cap.isOpened():
-        raise FileNotFoundError(f'Cannot open {input_file}')
+        raise FileNotFoundError(f'Cannot open {input_path}')
 
     fps = cap.get(cv2.CAP_PROP_FPS)
     frame_total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -68,7 +68,7 @@ def frame_extraction(
             else:
                 frame_date = video_time + timedelta(seconds=frame_seconds)
                 image_name = f'{frame_date.strftime("%Y%m%dT%H%M%S.%f")[:-3]}Z.png'
-            cv2.imwrite(str(output_path / image_name), frame)
+            cv2.imwrite(str(output_dir / image_name), frame)
 
 
 if __name__ == '__main__':
