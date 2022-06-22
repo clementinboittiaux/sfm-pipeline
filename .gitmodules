@@ -4,3 +4,4 @@
 [submodule "sfm/hloc"]
 	path = sfm/hloc
 	url = https://github.com/clementinboittiaux/Hierarchical-Localization.git
+	branch = hdf5
