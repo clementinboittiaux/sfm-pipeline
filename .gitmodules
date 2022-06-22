@@ -1,6 +1,7 @@
 [submodule "sfm/colmap"]
 	path = sfm/colmap
 	url = https://github.com/colmap/colmap
+	branch=dev
 [submodule "sfm/hloc"]
 	path = sfm/hloc
 	url = https://github.com/clementinboittiaux/Hierarchical-Localization.git
