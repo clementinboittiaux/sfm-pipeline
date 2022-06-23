@@ -49,7 +49,3 @@ def superglue(pairs_path: Path, features_path: Path, matches_path: Path):
         features_path,
         matches=matches_path
     )
-
-
-if __name__ == '__main__':
-    pairs_from_poses(Path('/home/server/Dev/sfm-pipeline/output/database.db'), Path('/home/server/Dev/sfm-pipeline/output/pairs.txt'), max_pairs=10, is_gps=True)

@@ -11,7 +11,8 @@ def run_sfm(
         pose_prior_path: Path,
         output_dir: Path,
         is_gps: bool = False,
-        use_priors: bool = False,
+        use_priors_for_ba: bool = False,
+        align_model_to_priors: bool = False,
         max_pairs: int = 20,
         max_pair_dist: float = 3,
         max_pair_angle: float = 30
@@ -30,8 +31,9 @@ def run_sfm(
     features_path = output_dir / 'features.h5'
     matches_path = output_dir / 'matches.h5'
     model_dir = output_dir / 'model'
+    adjusted_model_dir = model_dir / 'adjusted'
 
-    model_dir.mkdir(parents=True)
+    adjusted_model_dir.mkdir(parents=True)
 
     create_database(database_path)
     import_images(database_path, image_dir, camera_path, pose_prior_path)
@@ -53,12 +55,35 @@ def run_sfm(
         '--image_path': image_dir,
         '--output_path': model_dir
     }
-    if use_priors:
+    if use_priors_for_ba:
         mapper_options['--Mapper.use_prior_motion'] = 1
         if is_gps:
             mapper_options['--Mapper.prior_is_gps'] = 1
             mapper_options['--Mapper.use_enu_coords'] = 1
     subprocess.run([colmap_path, 'mapper', *[str(x) for kv in mapper_options.items() for x in kv]])
+
+    bundle_options = {
+        '--input_path': model_dir / '0',
+        '--output_path': model_dir / 'adjusted',
+        '--BundleAdjustment.refine_principal_point': 1,
+        '--BundleAdjustment.max_num_iterations': 10,
+        '--BundleAdjustment.function_tolerance': 0.00000001
+    }
+    subprocess.run([colmap_path, 'bundle_adjuster', *[str(x) for kv in bundle_options.items() for x in kv]])
+
+    if align_model_to_priors:
+        aligned_model_dir = model_dir / 'aligned'
+        aligned_model_dir.mkdir()
+        align_options = {
+            '--input_path': adjusted_model_dir,
+            '--output_path': aligned_model_dir,
+            '--database_path': database_path,
+            '--robust_alignment': 0
+        }
+        if is_gps:
+            align_options['--ref_is_gps'] = 1
+            align_options['--alignment_type'] = 'enu'
+        subprocess.run([colmap_path, 'model_aligner', *[str(x) for kv in align_options.items() for x in kv]])
 
 
 if __name__ == '__main__':
@@ -69,7 +94,8 @@ if __name__ == '__main__':
         Path('/home/server/Dev/sfm-pipeline/priors2016.txt'),
         Path('/home/server/Dev/sfm-pipeline/output'),
         is_gps=True,
-        use_priors=True,
+        use_priors_for_ba=True,
+        align_model_to_priors=True,
         max_pairs=20,
         max_pair_dist=3,
         max_pair_angle=30
