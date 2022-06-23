@@ -89,10 +89,10 @@ def run_sfm(
 if __name__ == '__main__':
     run_sfm(
         Path('/home/server/softwares/colmap_maxime/build/src/exe/colmap'),
-        Path('/home/server/Dev/sfm-pipeline/video/images2016'),
-        Path('/home/server/Dev/sfm-pipeline/cameras/VictorHD.yaml'),
-        Path('/home/server/Dev/sfm-pipeline/priors2016.txt'),
-        Path('/home/server/Dev/sfm-pipeline/output'),
+        Path('/home/server/Dev/sfm-pipeline/video/full2020'),
+        Path('/home/server/Dev/sfm-pipeline/cameras/Victor4K.yaml'),
+        Path('/home/server/Dev/sfm-pipeline/priors2020.txt'),
+        Path('/home/server/Dev/sfm-pipeline/test2020'),
         is_gps=True,
         use_priors_for_ba=True,
         align_model_to_priors=True,
