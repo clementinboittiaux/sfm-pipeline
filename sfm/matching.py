@@ -2,13 +2,13 @@ import numpy as np
 from utils import angle_between_quaternions
 from pathlib import Path
 from database import load_database_images
-from hloc.hloc import extract_features, match_features
+from hloc.hloc import extract_features, match_features, pairs_from_retrieval
 from navigation import gps_to_enu
 
 
 def pairs_from_poses(
         database_path: Path,
-        output_path: Path,
+        pairs_path: Path,
         max_pairs: int = 20,
         max_dist: float = 3,
         max_angle: float = 30,
@@ -22,7 +22,7 @@ def pairs_from_poses(
     num_best_pairs = int(max_pairs * best_pairs_ratio)
     num_stratified_pairs = max_pairs - num_best_pairs
     num_pairs = []
-    with open(output_path, 'w') as f:
+    with open(pairs_path, 'w') as f:
         for image_name, prior_q, prior_t in zip(image_names, prior_qs, prior_ts):
             t_dist = np.linalg.norm(prior_ts - prior_t, axis=1)
             q_dist = np.rad2deg(angle_between_quaternions(prior_q, prior_qs))
@@ -45,6 +45,10 @@ def pairs_from_poses(
     print(f'Finished pairs computing (average number of pairs per image: {sum(num_pairs) / len(num_pairs)}).')
 
 
+def pairs_from_netvlad(netvlad_path: Path, pairs_path: Path, max_pairs: int = 20):
+    pairs_from_retrieval.main(netvlad_path, pairs_path, num_matched=max_pairs)
+
+
 def superpoint(image_dir: Path, features_path: Path):
     extract_features.main(
         extract_features.confs['superpoint_aachen'],
@@ -59,4 +63,12 @@ def superglue(pairs_path: Path, features_path: Path, matches_path: Path):
         pairs_path,
         features_path,
         matches=matches_path
+    )
+
+
+def netvlad(image_dir: Path, netvlad_path: Path):
+    extract_features.main(
+        extract_features.confs['netvlad'],
+        image_dir=image_dir,
+        feature_path=netvlad_path
     )

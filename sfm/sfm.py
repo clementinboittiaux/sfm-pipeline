@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 from database import create_database, import_images, import_features, import_matches
-from matching import pairs_from_poses, superpoint, superglue
+from matching import pairs_from_poses, pairs_from_netvlad, superpoint, superglue, netvlad
 
 
 def run_sfm(
@@ -10,6 +10,7 @@ def run_sfm(
         camera_path: Path,
         pose_prior_path: Path,
         output_dir: Path,
+        spatial_retrieval: bool = True,
         is_gps: bool = False,
         use_priors_for_ba: bool = False,
         align_model_to_priors: bool = False,
@@ -37,14 +38,21 @@ def run_sfm(
 
     create_database(database_path)
     import_images(database_path, image_dir, camera_path, pose_prior_path)
-    pairs_from_poses(
-        database_path,
-        pairs_path,
-        max_pairs=max_pairs,
-        max_dist=max_pair_dist,
-        max_angle=max_pair_angle,
-        is_gps=is_gps
-    )
+
+    if spatial_retrieval:
+        pairs_from_poses(
+            database_path,
+            pairs_path,
+            max_pairs=max_pairs,
+            max_dist=max_pair_dist,
+            max_angle=max_pair_angle,
+            is_gps=is_gps
+        )
+    else:
+        netvlad_path = output_dir / 'netvlad.h5'
+        netvlad(image_dir, netvlad_path)
+        pairs_from_netvlad(netvlad_path, pairs_path, max_pairs=max_pairs)
+
     superpoint(image_dir, features_path)
     superglue(pairs_path, features_path, matches_path)
     import_features(database_path, features_path)
@@ -93,6 +101,7 @@ if __name__ == '__main__':
         Path('/home/server/Dev/sfm-pipeline/cameras/Victor4K.yaml'),
         Path('/home/server/Dev/sfm-pipeline/priors2020.txt'),
         Path('/home/server/Dev/sfm-pipeline/test2020'),
+        spatial_retrieval=True,
         is_gps=True,
         use_priors_for_ba=True,
         align_model_to_priors=True,
