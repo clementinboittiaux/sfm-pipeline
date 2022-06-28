@@ -66,7 +66,7 @@ def run_sfm(
         '--input_path': model_dir / '0',
         '--output_path': model_dir / 'adjusted',
         '--BundleAdjustment.refine_principal_point': 1,
-        '--BundleAdjustment.max_num_iterations': 10,
+        '--BundleAdjustment.max_num_iterations': 200,
         '--BundleAdjustment.function_tolerance': 0.00000001
     }
     subprocess.run([colmap_path, 'bundle_adjuster', *[str(x) for kv in bundle_options.items() for x in kv]])
@@ -89,7 +89,7 @@ def run_sfm(
 if __name__ == '__main__':
     run_sfm(
         Path('/home/server/softwares/colmap_maxime/build/src/exe/colmap'),
-        Path('/home/server/Dev/sfm-pipeline/video/full2020'),
+        Path('/home/server/Dev/sfm-pipeline/video/test2020'),
         Path('/home/server/Dev/sfm-pipeline/cameras/Victor4K.yaml'),
         Path('/home/server/Dev/sfm-pipeline/priors2020.txt'),
         Path('/home/server/Dev/sfm-pipeline/test2020'),
