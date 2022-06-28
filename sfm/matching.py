@@ -12,13 +12,14 @@ def pairs_from_poses(
         max_pairs: int = 20,
         max_dist: float = 3,
         max_angle: float = 30,
-        is_gps: bool = False
+        is_gps: bool = False,
+        best_pairs_ratio: float = 1.0
 ):
     print('Computing image pairs...')
     _, image_names, _, prior_qs, prior_ts = load_database_images(database_path)
     if is_gps:
         prior_ts = gps_to_enu(prior_ts)
-    num_best_pairs = int(max_pairs * 2 / 3)
+    num_best_pairs = int(max_pairs * best_pairs_ratio)
     num_stratified_pairs = max_pairs - num_best_pairs
     num_pairs = []
     with open(output_path, 'w') as f:
