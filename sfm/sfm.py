@@ -81,7 +81,9 @@ def run_sfm(
     :param pose_prior_path: path to pose prior file.
     :param output_dir: path to output directory.
     """
-    output_dir.mkdir(parents=True, exist_ok=False)
+    if output_dir.exists():
+        print(f'Warning: {output_dir} already exists.')
+    output_dir.mkdir(parents=True, exist_ok=True)
     symlink_images(image_dir, output_dir / 'images')
 
     database_path = output_dir / 'database.db'
@@ -127,7 +129,9 @@ def merge_sfms(
         max_pair_dist: float = 3,
         max_pair_angle: float = 45
 ):
-    output_dir.mkdir(parents=True, exist_ok=False)
+    if output_dir.exists():
+        print(f'Warning: {output_dir} already exists.')
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     image_dir = output_dir / 'images'
     database_path = output_dir / 'database.db'
@@ -143,8 +147,8 @@ def merge_sfms(
         import_images(
             database_path,
             sfm_dir / 'images',
-            sfm_dir / 'registrated' / 'cameras.bin',
-            sfm_dir / 'registrated' / 'images.bin'
+            sfm_dir / 'registered' / 'cameras.bin',
+            sfm_dir / 'registered' / 'images.bin'
         )
         symlink_images(sfm_dir / 'images', image_dir)
 
@@ -179,23 +183,23 @@ if __name__ == '__main__':
     parser_sfm.add_argument('--pose-priors-path', required=True, type=Path,
                             help='path to pose priors file (either `.txt` file or COLMAP `images.bin`).')
     parser_sfm.add_argument('--output-dir', required=True, type=Path, help='path to output directory.')
-    parser_sfm.add_argument('--spatial-retrieval', type=bool, default=1,
+    parser_sfm.add_argument('--spatial-retrieval', type=int, default=1,
                             help='use spatial retrieval instead of NetVLAD.')
-    parser_sfm.add_argument('--is-gps', type=bool, default=0, help='whether or not pose priors are GPS coordinates.')
-    parser_sfm.add_argument('--use-priors-for-ba', type=bool, default=0,
+    parser_sfm.add_argument('--is-gps', type=int, default=0, help='whether or not pose priors are GPS coordinates.')
+    parser_sfm.add_argument('--use-priors-for-ba', type=int, default=0,
                             help='use pose priors during bundle adjustments.')
-    parser_sfm.add_argument('--align-model-to-priors', type=bool, default=0, help='align model to pose priors.')
+    parser_sfm.add_argument('--align-model-to-priors', type=int, default=0, help='align model to pose priors.')
     parser_sfm.add_argument('--max-pairs', type=int, default=20, help='maximum number of pairs during retrieval.')
-    parser_sfm.add_argument('--max-pair-dist', type=float, default=3,
+    parser_sfm.add_argument('--max-pair-dist', type=float, default=5,
                             help='max distance between pairs during spatial retrieval.')
-    parser_sfm.add_argument('--max-pair-angle', type=float, default=30,
+    parser_sfm.add_argument('--max-pair-angle', type=float, default=45,
                             help='max angular distance between pairs in degrees during spatial retrieval.')
     parser_merge.add_argument('--colmap-path', type=Path, help='path to COLMAP executable.', default='colmap')
     parser_merge.add_argument('--sfm-dirs', required=True, nargs='+', type=Path,
                               help='paths to SfM output directories.')
     parser_merge.add_argument('--output-dir', required=True, type=Path, help='path to output directory.')
     parser_merge.add_argument('--max-pairs', type=int, default=50, help='maximum number of pairs during retrieval.')
-    parser_merge.add_argument('--max-pair-dist', type=float, default=3,
+    parser_merge.add_argument('--max-pair-dist', type=float, default=5,
                               help='max distance between pairs during spatial retrieval.')
     parser_merge.add_argument('--max-pair-angle', type=float, default=45,
                               help='max angular distance between pairs in degrees during spatial retrieval.')
