@@ -1,3 +1,4 @@
+import argparse
 import subprocess
 from utils import symlink_images
 from pathlib import Path
@@ -118,7 +119,14 @@ def run_sfm(
         align(colmap_path, bundle_dir, database_path, model_dir / 'align', is_gps=is_gps)
 
 
-def merge_sfms(colmap_path: Path, sfm_dirs: list[Path], output_dir: Path):
+def merge_sfms(
+        colmap_path: Path,
+        sfm_dirs: list[Path],
+        output_dir: Path,
+        max_pairs: int = 50,
+        max_pair_dist: float = 3,
+        max_pair_angle: float = 45
+):
     output_dir.mkdir(parents=True, exist_ok=False)
 
     image_dir = output_dir / 'images'
@@ -143,9 +151,9 @@ def merge_sfms(colmap_path: Path, sfm_dirs: list[Path], output_dir: Path):
     pairs_from_poses(
         database_path,
         pairs_path,
-        max_pairs=50,
-        max_dist=3,
-        max_angle=45
+        max_pairs=max_pairs,
+        max_dist=max_pair_dist,
+        max_angle=max_pair_angle
     )
 
     superpoint(image_dir, features_path)
@@ -157,17 +165,63 @@ def merge_sfms(colmap_path: Path, sfm_dirs: list[Path], output_dir: Path):
 
 
 if __name__ == '__main__':
-    run_sfm(
-        Path('/home/server/softwares/colmap_maxime/build/src/exe/colmap'),
-        Path('/home/server/Dev/sfm-pipeline/video/test2020'),
-        Path('/home/server/Dev/sfm-pipeline/cameras/Victor4K.yaml'),
-        Path('/home/server/Dev/sfm-pipeline/priors2020.txt'),
-        Path('/home/server/Dev/sfm-pipeline/test2020'),
-        spatial_retrieval=True,
-        is_gps=True,
-        use_priors_for_ba=True,
-        align_model_to_priors=True,
-        max_pairs=20,
-        max_pair_dist=3,
-        max_pair_angle=30
-    )
+    parser = argparse.ArgumentParser(description='Structure-from-Motion.',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    subparsers = parser.add_subparsers(dest='command')
+    parser_sfm = subparsers.add_parser('sfm', help='Single scene Strucure-from-Motion',
+                                       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser_merge = subparsers.add_parser('merge', help='Merge SfM outputs.',
+                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser_sfm.add_argument('--colmap-path', type=Path, help='path to COLMAP executable.', default='colmap')
+    parser_sfm.add_argument('--image-dir', required=True, type=Path, help='path to image directory.')
+    parser_sfm.add_argument('--camera-path', required=True, type=Path,
+                            help='path to camera file (either `.yaml` file or COLMAP `cameras.bin`).')
+    parser_sfm.add_argument('--pose-priors-path', required=True, type=Path,
+                            help='path to pose priors file (either `.txt` file or COLMAP `images.bin`).')
+    parser_sfm.add_argument('--output-dir', required=True, type=Path, help='path to output directory.')
+    parser_sfm.add_argument('--spatial-retrieval', type=bool, default=1,
+                            help='use spatial retrieval instead of NetVLAD.')
+    parser_sfm.add_argument('--is-gps', type=bool, default=0, help='whether or not pose priors are GPS coordinates.')
+    parser_sfm.add_argument('--use-priors-for-ba', type=bool, default=0,
+                            help='use pose priors during bundle adjustments.')
+    parser_sfm.add_argument('--align-model-to-priors', type=bool, default=0, help='align model to pose priors.')
+    parser_sfm.add_argument('--max-pairs', type=int, default=20, help='maximum number of pairs during retrieval.')
+    parser_sfm.add_argument('--max-pair-dist', type=float, default=3,
+                            help='max distance between pairs during spatial retrieval.')
+    parser_sfm.add_argument('--max-pair-angle', type=float, default=30,
+                            help='max angular distance between pairs in degrees during spatial retrieval.')
+    parser_merge.add_argument('--colmap-path', type=Path, help='path to COLMAP executable.', default='colmap')
+    parser_merge.add_argument('--sfm-dirs', required=True, nargs='+', type=Path,
+                              help='paths to SfM output directories.')
+    parser_merge.add_argument('--output-dir', required=True, type=Path, help='path to output directory.')
+    parser_merge.add_argument('--max-pairs', type=int, default=50, help='maximum number of pairs during retrieval.')
+    parser_merge.add_argument('--max-pair-dist', type=float, default=3,
+                              help='max distance between pairs during spatial retrieval.')
+    parser_merge.add_argument('--max-pair-angle', type=float, default=45,
+                              help='max angular distance between pairs in degrees during spatial retrieval.')
+    args = parser.parse_args()
+
+    if args.command == 'sfm':
+        run_sfm(
+            args.colmap_path,
+            args.image_dir,
+            args.camera_path,
+            args.pose_priors_path,
+            args.output_dir,
+            spatial_retrieval=args.spatial_retrieval,
+            is_gps=args.is_gps,
+            use_priors_for_ba=args.use_priors_for_ba,
+            align_model_to_priors=args.align_model_to_priors,
+            max_pairs=args.max_pairs,
+            max_pair_dist=args.max_pair_dist,
+            max_pair_angle=args.max_pair_angle
+        )
+    elif args.command == 'merge':
+        merge_sfms(
+            args.colmap_path,
+            args.sfm_dirs,
+            args.output_dir,
+            max_pairs=args.max_pairs,
+            max_pair_dist=args.max_pair_dist,
+            max_pair_angle=args.max_pair_angle
+        )

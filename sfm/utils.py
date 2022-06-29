@@ -5,7 +5,7 @@ from colmap.scripts.python import read_write_model
 
 
 def load_camera(camera_path: Path) -> dict:
-    if camera_path.suffix == '.txt':
+    if camera_path.suffix == '.yaml':
         with open(camera_path, 'r') as f:
             camera = yaml.safe_load(f)
         return camera
