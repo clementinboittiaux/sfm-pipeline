@@ -6,3 +6,6 @@
 	path = sfm/hloc
 	url = https://github.com/clementinboittiaux/Hierarchical-Localization.git
 	branch = hdf5
+[submodule "sfm/teaserpp"]
+	path = sfm/teaserpp
+	url = https://github.com/MIT-SPARK/TEASER-plusplus.git
