@@ -59,7 +59,6 @@ def align(colmap_path: Path, model_dir: Path, database_path: Path, align_dir: Pa
     subprocess.run([colmap_path, 'model_aligner', *[str(x) for kv in align_options.items() for x in kv]])
 
 
-
 def run_sfm(
         colmap_path: Path,
         image_dir: Path,
@@ -176,7 +175,8 @@ if __name__ == '__main__':
                                        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_merge = subparsers.add_parser('merge', help='Merge SfM outputs.',
                                          formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser_sfm.add_argument('--colmap-path', type=Path, help='path to COLMAP executable.', default='colmap')
+    parser_sfm.add_argument('--colmap-path', type=Path, help='path to COLMAP executable.',
+                            default='/home/server/softwares/colmap_maxime/build/src/exe/colmap')
     parser_sfm.add_argument('--image-dir', required=True, type=Path, help='path to image directory.')
     parser_sfm.add_argument('--camera-path', required=True, type=Path,
                             help='path to camera file (either `.yaml` file or COLMAP `cameras.bin`).')
