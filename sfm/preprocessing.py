@@ -18,6 +18,7 @@ def deinterlace(input_path: Path, output_path: Path, invert_lines: bool = False)
     stream = ffmpeg.input(str(input_path))
 
     if invert_lines:
+        print('Inverting lines before deinterlacing.')
         stream = stream.filter('il', ls=1, cs=1)
 
     stream = stream.filter('yadif', 0)
