@@ -71,6 +71,22 @@ def frame_extraction(
             cv2.imwrite(str(output_dir / image_name), frame)
 
 
+def inpaint(input_dir: Path, output_dir: Path, mask_path: Path):
+    """
+    Inpaints images to remove incrusts.
+    :param input_dir: input image directory.
+    :param output_dir: output image directory.
+    :param mask_path: path to the image mask.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    mask = cv2.imread(str(mask_path))
+
+    for image_path in tqdm.tqdm(list(input_dir.iterdir())):
+        image = cv2.imread(str(image_path))
+        image = cv2.inpaint(image, mask[:, :, 0], 3, cv2.INPAINT_TELEA)
+        cv2.imwrite(str(output_dir / image_path.name), image)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Video processing.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -79,6 +95,8 @@ if __name__ == '__main__':
                                                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_frame_extraction = subparsers.add_parser('frame-extraction', help=frame_extraction.__doc__.splitlines()[0],
                                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser_inpaint = subparsers.add_parser('inpaint', help=inpaint.__doc__.splitlines()[1],
+                                           formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser_deinterlace.add_argument('--input', required=True, type=Path, help='input video file.')
     parser_deinterlace.add_argument('--output', required=True, type=Path, help='output video file.')
@@ -95,6 +113,10 @@ if __name__ == '__main__':
     parser_frame_extraction.add_argument('--end-time', type=float, default=math.inf,
                                          help='extraction end time in seconds.')
 
+    parser_inpaint.add_argument('--input-dir', required=True, type=Path, help='path to input directory.')
+    parser_inpaint.add_argument('--output-dir', required=True, type=Path, help='path to output directory.')
+    parser_inpaint.add_argument('--mask-path', required=True, type=Path, help='path mask image.')
+
     args = parser.parse_args()
 
     if args.command == 'deinterlace':
@@ -108,3 +130,5 @@ if __name__ == '__main__':
             args.start_time,
             args.end_time
         )
+    elif args.command == 'inpaint':
+        inpaint(args.input_dir, args.output_dir, args.mask_path)
