@@ -4,6 +4,7 @@ from pathlib import Path
 from utils import load_pose_priors
 from datetime import datetime
 from navigation import gps_to_enu, load_navigation
+from registration import pcl_from_colmap
 from scipy.spatial.transform import Rotation
 
 
@@ -41,5 +42,18 @@ def visualize_navigation(navigation_path: Path, min_date: datetime, max_date: da
     show_cameras(Rs, ts, scale)
 
 
+def visualize_models(colmap_dirs: list[Path]):
+    pcls = []
+    for colmap_dir in colmap_dirs:
+        pcl = pcl_from_colmap(colmap_dir / 'points3D.bin')
+        pcl.paint_uniform_color(np.random.rand(3))
+        pcls.append(pcl)
+    o3d.visualization.draw_geometries(pcls)
+
+
 if __name__ == '__main__':
-    visualize_pose_priors(Path('/home/server/Dev/sfm-pipeline/priors2020.txt'))
+    visualize_models([
+        Path('/workspace/TourEiffelClean/2015/sfm/model/register'),
+        Path('/workspace/TourEiffelClean/2016/sfm/model/register'),
+        Path('/workspace/TourEiffelClean/2020/sfm/model/register')
+    ])

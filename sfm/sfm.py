@@ -33,15 +33,20 @@ def mapper(
     subprocess.run([colmap_path, 'mapper', *[str(x) for kv in mapper_options.items() for x in kv]])
 
 
-def bundle(colmap_path: Path, model_dir: Path, bundle_dir: Path):
+def bundle(colmap_path: Path, model_dir: Path, bundle_dir: Path, refine_camera: bool = True):
     bundle_dir.mkdir(parents=True, exist_ok=True)
     bundle_options = {
         '--input_path': model_dir,
         '--output_path': bundle_dir,
-        '--BundleAdjustment.refine_principal_point': 1,
         '--BundleAdjustment.max_num_iterations': 200,
         '--BundleAdjustment.function_tolerance': 0.0000000001
     }
+    if refine_camera:
+        bundle_options['--BundleAdjustment.refine_principal_point'] = 1
+    else:
+        bundle_options['--BundleAdjustment.refine_focal_length'] = 0
+        bundle_options['--BundleAdjustment.refine_principal_point'] = 0
+        bundle_options['--BundleAdjustment.refine_extra_params'] = 0
     subprocess.run([colmap_path, 'bundle_adjuster', *[str(x) for kv in bundle_options.items() for x in kv]])
 
 
@@ -115,7 +120,7 @@ def run_sfm(
     import_matches(database_path, pairs_path, matches_path)
 
     mapper(colmap_path, database_path, image_dir, model_dir, use_priors=use_priors_for_ba, is_gps=is_gps)
-    bundle(colmap_path, model_dir / '0', bundle_dir)
+    bundle(colmap_path, model_dir / '0', bundle_dir, refine_camera=True)
     if align_model_to_priors:
         align(colmap_path, bundle_dir, database_path, model_dir / 'align', is_gps=is_gps)
 
@@ -138,16 +143,16 @@ def merge_sfms(
     features_path = output_dir / 'features.h5'
     matches_path = output_dir / 'matches.h5'
     model_dir = output_dir / 'model'
+    bundle_dir = model_dir / 'bundle'
 
     create_database(database_path)
 
     for sfm_dir in sfm_dirs:
-        # Registration saved in model/registrated
         import_images(
             database_path,
             sfm_dir / 'images',
-            sfm_dir / 'registered' / 'cameras.bin',
-            sfm_dir / 'registered' / 'images.bin'
+            sfm_dir / 'register' / 'cameras.bin',
+            sfm_dir / 'register' / 'images.bin'
         )
         symlink_images(sfm_dir / 'images', image_dir)
 
@@ -165,6 +170,7 @@ def merge_sfms(
     import_matches(database_path, pairs_path, matches_path)
 
     mapper(colmap_path, database_path, image_dir, model_dir, refine_camera=False)
+    bundle(colmap_path, model_dir / '0', bundle_dir, refine_camera=False)
 
 
 if __name__ == '__main__':
@@ -194,7 +200,8 @@ if __name__ == '__main__':
                             help='max distance between pairs during spatial retrieval.')
     parser_sfm.add_argument('--max-pair-angle', type=float, default=45,
                             help='max angular distance between pairs in degrees during spatial retrieval.')
-    parser_merge.add_argument('--colmap-path', type=Path, help='path to COLMAP executable.', default='colmap')
+    parser_merge.add_argument('--colmap-path', type=Path, help='path to COLMAP executable.',
+                              default='/home/server/softwares/colmap_maxime/build/src/exe/colmap')
     parser_merge.add_argument('--sfm-dirs', required=True, nargs='+', type=Path,
                               help='paths to SfM output directories.')
     parser_merge.add_argument('--output-dir', required=True, type=Path, help='path to output directory.')

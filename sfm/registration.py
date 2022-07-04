@@ -1,3 +1,5 @@
+import argparse
+import subprocess
 import teaserpp_python
 import numpy as np
 import open3d as o3d
@@ -84,31 +86,45 @@ def save_transformation(transformation: np.array, output_path: Path):
         f.write('\n'.join([' '.join(map(str, row)) for row in transformation]) + '\n')
 
 
-def register(src_dir: Path, dst_dir: Path, output_dir: Path, vox_size: float):
+def register(colmap_path: Path, src_dir: Path, dst_dir: Path, output_dir: Path, vox_size: float):
     print(f'Registering {src_dir} on {dst_dir}.')
     output_dir.mkdir(parents=True, exist_ok=True)
+    transformation_path = output_dir / 'transformation.txt'
     if src_dir.resolve() == dst_dir.resolve():
         (output_dir / 'cameras.bin').symlink_to(src_dir / 'cameras.bin')
         (output_dir / 'images.bin').symlink_to(src_dir / 'images.bin')
         (output_dir / 'points3D.bin').symlink_to(src_dir / 'points3D.bin')
-        save_transformation(np.eye(4), output_dir / 'transformation.txt')
+        save_transformation(np.eye(4), transformation_path)
     else:
         src_pcl = pcl_from_colmap(src_dir / 'points3D.bin')
         dst_pcl = pcl_from_colmap(dst_dir / 'points3D.bin')
-        src_pcl.paint_uniform_color([1, 0.709, 0.0])
-        dst_pcl.paint_uniform_color([0.0, 0.709, 1.0])
         initialization = teaserpp(src_pcl, dst_pcl, vox_size)
         transformation = icp(src_pcl, dst_pcl, vox_size, initialization)
-        save_transformation(transformation, output_dir / 'transformation.txt')
-        src_pcl.transform(transformation)
-        o3d.visualization.draw_geometries([src_pcl, dst_pcl])
+        save_transformation(transformation, transformation_path)
+        # src_pcl.transform(transformation)
+        # o3d.visualization.draw_geometries([src_pcl, dst_pcl])
+        subprocess.run([colmap_path, 'model_transformer', '--input_path', src_dir, '--output_path', output_dir,
+                        '--transform_path', transformation_path])
     print('Registration done.')
 
 
+def cross_register(colmap_path: Path, model_dirs: list[Path], vox_size: float):
+    for model_dir in model_dirs:
+        register(colmap_path, model_dir, model_dirs[0], model_dir / '..' / 'register', vox_size)
+
+
 if __name__ == '__main__':
-    register(
-        Path('/workspace/TourEiffelClean/2016/sfm/model/align'),
-        Path('/workspace/TourEiffelClean/2020/sfm/model/align'),
-        Path('registration'),
-        0.15
+    parser = argparse.ArgumentParser(description='COLMAP model registration.',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--colmap-path', type=Path, help='path to COLMAP executable.',
+                        default='/home/server/softwares/colmap_maxime/build/src/exe/colmap')
+    parser.add_argument('--model-dirs', required=True, nargs='+', type=Path,
+                        help='paths to COLMAP models directories.')
+    parser.add_argument('--voxel-size', type=float, default=0.15, help='voxel size for TEASER++ estimation.')
+    args = parser.parse_args()
+
+    cross_register(
+        args.colmap_path,
+        args.model_dirs,
+        args.voxel_size
     )
