@@ -20,6 +20,24 @@ class CameraToVehicle(Enum):
         return self.name
 
 
+def convert_old_nav(old_nav_path: Path, new_nav_path: Path):
+    """
+    Converts old `.txt` navigation file to new navigation format.
+    Old format is:
+    Date Heure Latitude Longitude Immersion Cap Pitch Roll
+    separated by \\t character.
+    :param old_nav_path: path to old navigation file.
+    :param new_nav_path: path to new navigation file.
+    """
+    with open(old_nav_path, 'r') as r, open(new_nav_path, 'w') as w:
+        r.readline()
+        w.write('date lat lon alt yaw pitch roll\n')
+        for line in r:
+            line = line.split('\t')
+            date = datetime.strptime(line[0]+line[1], '%d/%m/%Y%H:%M:%S.%f')
+            w.write(date.strftime('%Y%m%dT%H%M%S.%f') + ' ' + ' '.join(line[2:8]) + '\n')
+
+
 def load_navigation(navigation_path: Path, camera_to_vehicle: CameraToVehicle = CameraToVehicle.VICTORHD):
     df = pd.read_csv(navigation_path, sep=' ')
     dates = np.array([datetime.strptime(date, '%Y%m%dT%H%M%S.%f') for date in df['date']])
@@ -83,6 +101,7 @@ def navigation_to_pose_priors(
         camera_to_vehicle: CameraToVehicle = CameraToVehicle.VICTORHD
 ):
     dates, gps, rots = load_navigation(navigation_path, camera_to_vehicle)
+    output_path.parent.mkdir(exist_ok=True, parents=True)
     with open(output_path, 'w') as f:
         for image_path in image_dir.iterdir():
             try:
@@ -101,8 +120,13 @@ def gps_to_enu(gps: np.array):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='Convert navigation file into pose priors file.\n'
+    parser = argparse.ArgumentParser(description='Process navigation files.',
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    subparsers = parser.add_subparsers(dest='command')
+
+    parser_priors = subparsers.add_parser(
+        'nav-to-priors',
+        help='Convert navigation file into pose priors file.\n'
         'Navigation data is interpolated at the images dates.\n'
         'Navigation file format is:\n'
         'date lat lon alt yaw pitch roll\n'
@@ -112,20 +136,32 @@ if __name__ == '__main__':
         'where dates are in format `YYYYmmddTHHMMSS.ffffff`.',
         formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument('--navigation-path', required=True, type=Path, help='path to navigation file.')
-    parser.add_argument('--image-dir', required=True, type=Path, help='path to images directory.')
-    parser.add_argument('--output-path', required=True, type=Path, help='path to output pose priors file.')
-    parser.add_argument('--max-gap-time', type=float, default=3,
-                        help='maximum time gap between two interpolation points in seconds. (default: %(default)s)')
-    parser.add_argument('--camera-to-vehicle', type=lambda x: CameraToVehicle[x],
-                        default='VICTORHD', choices=list(CameraToVehicle),
-                        help='camera-to-vehicle rotation transformation. (default: %(default)s)')
+    parser_priors.add_argument('--navigation-path', required=True, type=Path, help='path to navigation file.')
+    parser_priors.add_argument('--image-dir', required=True, type=Path, help='path to images directory.')
+    parser_priors.add_argument('--output-path', required=True, type=Path, help='path to output pose priors file.')
+    parser_priors.add_argument('--max-gap-time', type=float, default=3,
+                               help='maximum time gap between two interpolation points in seconds. '
+                                    '(default: %(default)s)')
+    parser_priors.add_argument('--camera-to-vehicle', type=lambda x: CameraToVehicle[x],
+                               default='VICTORHD', choices=list(CameraToVehicle),
+                               help='camera-to-vehicle rotation transformation. (default: %(default)s)')
+
+    parser_convert = subparsers.add_parser(
+        'convert-old-nav', help='Convert old navigation file to new format.',
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser_convert.add_argument('--old-nav-path', required=True, type=Path, help='path to old navigation file.')
+    parser_convert.add_argument('--new-nav-path', required=True, type=Path, help='path to new navigation file.')
+
     args = parser.parse_args()
 
-    navigation_to_pose_priors(
-        args.navigation_path,
-        args.image_dir,
-        args.output_path,
-        max_gap_time=args.max_gap_time,
-        camera_to_vehicle=args.camera_to_vehicle
-    )
+    if args.command == 'nav-to-priors':
+        navigation_to_pose_priors(
+            args.navigation_path,
+            args.image_dir,
+            args.output_path,
+            max_gap_time=args.max_gap_time,
+            camera_to_vehicle=args.camera_to_vehicle
+        )
+    elif args.command == 'convert-old-nav':
+        convert_old_nav(args.old_nav_path, args.new_nav_path)
