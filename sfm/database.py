@@ -55,8 +55,14 @@ def load_database_images(database_path: Path):
         image_ids.append(row[0])
         image_names.append(row[1])
         camera_ids.append(row[2])
-        prior_qs.append(row[3:7])
-        prior_ts.append(row[7:10])
+        if row[3] is not None:
+            prior_qs.append(row[3:7])
+        else:
+            prior_qs.append((np.nan, np.nan, np.nan, np.nan))
+        if row[7] is not None:
+            prior_ts.append(row[7:10])
+        else:
+            prior_ts.append((np.nan, np.nan, np.nan))
     db.close()
     return np.array(image_ids), np.array(image_names), np.array(camera_ids), np.array(prior_qs), np.array(prior_ts)
 

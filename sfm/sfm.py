@@ -151,8 +151,8 @@ def merge_sfms(
         import_images(
             database_path,
             sfm_dir / 'images',
-            sfm_dir / 'register' / 'cameras.bin',
-            sfm_dir / 'register' / 'images.bin'
+            sfm_dir / 'sfm' / 'model' / 'register' / 'cameras.bin',
+            sfm_dir / 'sfm' / 'model' / 'register' / 'images.bin'
         )
         symlink_images(sfm_dir / 'images', image_dir)
 

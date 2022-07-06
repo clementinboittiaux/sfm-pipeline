@@ -10,7 +10,7 @@ def load_camera(camera_path: Path) -> dict:
             camera = yaml.safe_load(f)
         return camera
     elif camera_path.suffix == '.bin':
-        cameras = list(read_write_model.read_cameras_binary(camera_path))
+        cameras = list(read_write_model.read_cameras_binary(camera_path).values())
         assert len(cameras) == 1, f'Invalid camera file: {camera_path} has {len(cameras)} cameras.'
         return cameras[0]._asdict()
     else:
