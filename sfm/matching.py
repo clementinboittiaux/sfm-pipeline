@@ -10,12 +10,13 @@ from navigation import gps_to_enu
 
 def read_pairs(pairs_path: Path) -> dict[str, list[str]]:
     pairs = {}
-    with open(pairs_path, 'r') as f:
-        for line in f:
-            im0, im1 = line.split(' ')
-            if im0 not in pairs:
-                pairs[im0] = []
-            pairs[im0].append(im1.strip())
+    if pairs_path.exists():
+        with open(pairs_path, 'r') as f:
+            for line in f:
+                im0, im1 = line.split(' ')
+                if im0 not in pairs:
+                    pairs[im0] = []
+                pairs[im0].append(im1.strip())
     return pairs
 
 
@@ -116,9 +117,12 @@ def pairs_from_netvlad(
             new_pairs_db = read_pairs(new_pairs_db_path)
             new_pairs_db_path.unlink()
             for image, image_pairs_db in new_pairs_db.items():
-                image_pairs = new_pairs[image]
-                merged_pairs = pd.unique(np.hstack([image_pairs, image_pairs_db])).tolist()
-                new_pairs[image] = merged_pairs
+                if image in new_pairs:
+                    image_pairs = new_pairs[image]
+                    merged_pairs = pd.unique(np.hstack([image_pairs, image_pairs_db])).tolist()
+                    new_pairs[image] = merged_pairs
+                else:
+                    new_pairs[image] = image_pairs_db
 
         pairs = read_pairs(pairs_path) | new_pairs
         write_pairs(pairs_path, pairs)
