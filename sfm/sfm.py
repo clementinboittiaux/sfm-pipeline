@@ -89,7 +89,8 @@ def run_sfm(
         align_model_to_priors: bool = False,
         max_pairs: int = 20,
         max_pair_dist: float = 5,
-        max_pair_angle: float = 45
+        max_pair_angle: float = 45,
+        best_pairs_ratio: float = 1.0
 ):
     """
     Run SfM pipeline.
@@ -116,7 +117,8 @@ def run_sfm(
             max_pairs=max_pairs,
             max_dist=max_pair_dist,
             max_angle=max_pair_angle,
-            is_gps=is_gps
+            is_gps=is_gps,
+            best_pairs_ratio=best_pairs_ratio
         )
     else:
         netvlad_path = output_dir / 'netvlad.h5'
@@ -284,6 +286,8 @@ if __name__ == '__main__':
                             help='max distance between pairs during spatial retrieval.')
     parser_sfm.add_argument('--max-pair-angle', type=float, default=45,
                             help='max angular distance between pairs in degrees during spatial retrieval.')
+    parser_sfm.add_argument('--best-pairs-ratio', type=float, default=1.0,
+                            help='lower the ratio for stratified pairs during spatial retrieval.')
 
     parser_merge.add_argument('--colmap-path', type=Path, help='path to COLMAP executable.',
                               default='/home/server/softwares/colmap_maxime/build/src/exe/colmap')
@@ -328,7 +332,8 @@ if __name__ == '__main__':
             align_model_to_priors=args.align_model_to_priors,
             max_pairs=args.max_pairs,
             max_pair_dist=args.max_pair_dist,
-            max_pair_angle=args.max_pair_angle
+            max_pair_angle=args.max_pair_angle,
+            best_pairs_ratio=args.best_pairs_ratio
         )
     elif args.command == 'merge':
         merge_sfms(
